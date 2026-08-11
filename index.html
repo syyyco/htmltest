@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Earnings Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background: #fafafa;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .card {
+            margin: 20px auto;
+            width: 400px;
+        }
+
+        .label {
+            font-size: 20px;
+            color: #666;
+        }
+
+        .value {
+            font-size: 50px;
+            color: #9370f0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1> Earnings Tracker</h1>
+
+<div class="card">
+    <div class="label">Today's Earnings</div>
+    <div id="today" class="value">$0.00</div>
+</div>
+
+<div class="card">
+    <div class="label">Weekly Earnings</div>
+    <div id="week" class="value">$0.00</div>
+</div>
+
+<div class="card">
+    <div class="label">Monthly Earnings</div>
+    <div id="month" class="value">$0.00</div>
+</div>
+
+<script>
+
+const hourlyRate = 7.00;
+
+const WORK_START = 8;
+const LUNCH_START = 11.5; // 11:30
+const LUNCH_END = 12.5;   // 12:30
+const WORK_END = 17;
+
+const DAILY_HOURS =
+    (LUNCH_START - WORK_START) +
+    (WORK_END - LUNCH_END);
+
+function isWeekday(date) {
+    const day = date.getDay();
+    return day !== 0 && day !== 6;
+}
+
+function getTodayHoursWorked() {
+    const now = new Date();
+
+    if (!isWeekday(now))
+        return 0;
+
+    const start = new Date(now);
+    start.setHours(8, 0, 0, 0);
+
+    const lunchStart = new Date(now);
+    lunchStart.setHours(11, 30, 0, 0);
+
+    const lunchEnd = new Date(now);
+    lunchEnd.setHours(12, 30, 0, 0);
+
+    const end = new Date(now);
+    end.setHours(17, 15, 0, 0);
+
+    let effectiveNow = now;
+
+    if (effectiveNow < start)
+        return 0;
+
+    if (effectiveNow > end)
+        effectiveNow = end;
+
+    let workedMs = effectiveNow - start;
+
+    if (effectiveNow > lunchStart) {
+        workedMs -= Math.min(
+            effectiveNow - lunchStart,
+            lunchEnd - lunchStart
+        );
+    }
+
+    return workedMs / 3600000;
+}
+
+function getCompletedWeekdayCount(startDate, endDate) {
+
+    let count = 0;
+
+    const d = new Date(startDate);
+
+    while (d < endDate) {
+        if (isWeekday(d))
+            count++;
+
+        d.setDate(d.getDate() + 1);
+    }
+
+    return count;
+}
+
+function getWeeklyEarnings() {
+
+    const now = new Date();
+
+    const startOfWeek = new Date(now);
+
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+
+    startOfWeek.setDate(now.getDate() + diff);
+    startOfWeek.setHours(0,0,0,0);
+
+const completedDays =
+    getCompletedWeekdayCount(
+        startOfWeek,
+        new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    );
+
+const totalHours =
+    completedDays * DAILY_HOURS +
+    getTodayHoursWorked();
+
+    return totalHours * hourlyRate;
+}
+
+function getMonthlyEarnings() {
+
+    const now = new Date();
+
+    const startOfMonth =
+        new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const completedDays =
+        getCompletedWeekdayCount(startOfMonth, now);
+
+    const totalHours =
+        completedDays * DAILY_HOURS +
+        getTodayHoursWorked();
+
+    return totalHours * hourlyRate;
+}
+
+function updateEarnings() {
+
+    const todayEarn =
+        getTodayHoursWorked() * hourlyRate;
+
+    const weekEarn =
+        getWeeklyEarnings();
+
+    const monthEarn =
+        getMonthlyEarnings();
+
+    document.getElementById("today").textContent =
+        "$" + todayEarn.toFixed(4);
+
+    document.getElementById("week").textContent =
+        "$" + weekEarn.toFixed(4);
+
+    document.getElementById("month").textContent =
+        "$" + monthEarn.toFixed(4);
+}
+
+setInterval(updateEarnings, 100);
+updateEarnings();
+
+</script>
+
+</body>
+</html>
